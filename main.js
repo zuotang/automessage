@@ -9,7 +9,7 @@ let worker = null;
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启22" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
@@ -31,7 +31,7 @@ function startTask() {
 
     running = true;
     ui.run(() => {
-        w.toggle.setText("关闭");
+        w.toggle.setText("关闭33");
     });
 
     worker = threads.start(function () {
@@ -43,7 +43,7 @@ function startTask() {
         } finally {
             running = false;
             ui.run(() => {
-                w.toggle.setText("开启");
+                w.toggle.setText("开启66");
             });
         }
     });
