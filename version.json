@@ -1,8 +1,8 @@
 {
-  "version": "4-31d1157",
+  "version": "5-6d8ca0f",
   "force": 0,
   "entry": "main.js",
-  "changelog": "auto build 4-31d1157",
+  "changelog": "auto build 5-6d8ca0f",
   "files": [
     {
       "path": "main.js",
