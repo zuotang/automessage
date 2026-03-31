@@ -73,7 +73,7 @@ function main() {
 // =========================
 
 function getRemoteManifest() {
-    const res = http.get(REMOTE_MANIFEST_URL);
+    const res = http.get(withNoCache(REMOTE_MANIFEST_URL));
     if (!res) {
         throw new Error("获取远程 version.json 失败");
     }
@@ -242,7 +242,7 @@ function runEntry(entryRelativePath) {
 function downloadToFile(url, targetFile) {
     logi("下载: " + url);
 
-    const res = http.get(url);
+    const res = http.get(withNoCache(url));
     if (!res) {
         throw new Error("下载失败: " + url);
     }
@@ -362,4 +362,9 @@ function logi(msg) {
 
 function logw(msg) {
     console.warn(LOG_TAG + " " + msg);
+}
+
+function withNoCache(url) {
+    const sep = url.indexOf("?") >= 0 ? "&" : "?";
+    return url + sep + "_t=" + new Date().getTime();
 }
