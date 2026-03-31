@@ -6,8 +6,9 @@
 
 // ---- 你要改的配置 ----
 const BOOTSTRAP_VERSION = "1.0.0";
-//const REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/zuotang/automessage/main/version.json";
-const REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/zuotang/automessage/refs/heads/main/version.json";
+let fetchIndex=0
+const REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/zuotang/automessage/main/version.json";
+const REMOTE_MANIFEST_URL2 = "https://raw.githubusercontent.com/zuotang/automessage/refs/heads/main/version.json";
 
 // ---- 本地目录 ----
 const BASE_DIR = files.cwd();
@@ -74,7 +75,13 @@ function main() {
 // =========================
 
 function getRemoteManifest() {
-    const res = http.get(withNoCache(REMOTE_MANIFEST_URL));
+    let res 
+    if(fetchIndex%2==0){
+        res=http.get(withNoCache(REMOTE_MANIFEST_URL2));
+    }else{
+        res=http.get(withNoCache(REMOTE_MANIFEST_URL));
+        fetchIndex=1
+    } 
     if (!res) {
         throw new Error("获取远程 version.json 失败");
     }
