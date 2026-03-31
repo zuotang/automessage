@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "force": 1,
+  "minBootstrapVersion": "1.0.0",
+  "changelog": "初始版本",
+  "entry": "main.js",
+  "files": [
+    {
+      "path": "main.js",
+      "url": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/main.js"
+    },
+    {
+      "path": "lib/utils.js",
+      "url": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/lib/utils.js"
+    }
+  ]
+}
