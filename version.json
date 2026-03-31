@@ -1,8 +1,8 @@
 {
-  "version": "1-e8225c1",
+  "version": "2-01ffda8",
   "force": 0,
   "entry": "main.js",
-  "changelog": "auto build 1-e8225c1",
+  "changelog": "auto build 2-01ffda8",
   "files": [
     {
       "path": "main.js",
