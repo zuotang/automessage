@@ -1,4 +1,12 @@
-let utils = require("./lib/utils.js");
+
+const PROJECT_DIR = files.path(".");
+
+function r(relPath) {
+    return require(files.join(PROJECT_DIR, relPath));
+}
+
+const utils = r("lib/utils.js");
+
 
 auto.waitFor();
 let running = false;

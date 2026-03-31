@@ -231,9 +231,11 @@ function runEntry(entryRelativePath) {
     }
 
     logi("运行入口脚本: " + entryFile);
-    engines.execScriptFile(entryFile);
-}
 
+    engines.execScriptFile(entryFile, {
+        path: BASE_DIR
+    });
+}
 // =========================
 // 下载与替换
 // =========================
