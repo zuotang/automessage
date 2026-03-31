@@ -72,7 +72,7 @@ function runTask() {
 
     if (!running) return;
 
-    let ok = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.75);
+    let ok = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.75, () => !running);
 
     if (ok) {
         toast("点击成功");

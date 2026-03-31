@@ -5,12 +5,11 @@
 // =========================
 
 // ---- 你要改的配置 ----
-const PROJECT_NAME = "my_remote_project";
 const BOOTSTRAP_VERSION = "1.0.0";
 const REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/zuotang/automessage/main/version.json";
 
 // ---- 本地目录 ----
-const BASE_DIR = files.join(files.cwd(), PROJECT_NAME);
+const BASE_DIR = files.cwd();
 const TEMP_DIR = files.join(BASE_DIR, "_tmp");
 const LOCAL_META_FILE = files.join(BASE_DIR, "local_meta.json");
 const LOG_TAG = "[Updater]";

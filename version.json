@@ -1,12 +1,20 @@
 {
-  "version": "5-6d8ca0f",
+  "version": "202603311742",
   "force": 0,
   "entry": "main.js",
-  "changelog": "auto build 5-6d8ca0f",
+  "changelog": "auto build 202603311742",
   "files": [
     {
       "path": "main.js",
       "url": "https://raw.githubusercontent.com/zuotang/automessage/main/main.js"
+    },
+    {
+      "path": "lib/utils.js",
+      "url": "https://raw.githubusercontent.com/zuotang/automessage/main/lib/utils.js"
+    },
+    {
+      "path": "task.js",
+      "url": "https://raw.githubusercontent.com/zuotang/automessage/main/task.js"
     }
   ]
 }
