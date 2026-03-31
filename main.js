@@ -9,7 +9,7 @@ let worker = null;
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启44" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启66" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
