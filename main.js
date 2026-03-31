@@ -1,14 +1,38 @@
 
+auto.waitFor();
+"auto";
+
 const PROJECT_DIR = files.path(".");
 
 function r(relPath) {
-    return require(files.join(PROJECT_DIR, relPath));
+    const fullPath = files.join(PROJECT_DIR, relPath);
+    log("准备加载模块: " + fullPath);
+    log("文件是否存在: " + files.exists(fullPath));
+
+    if (files.exists(fullPath)) {
+        log("文件内容预览: ");
+        log(files.read(fullPath));
+    }
+
+    return require(fullPath);
 }
 
-const utils = r("lib/utils.js");
+try {
+    log("当前目录: " + PROJECT_DIR);
+    log("main.js 存在: " + files.exists(files.join(PROJECT_DIR, "main.js")));
+    log("utils.js 存在: " + files.exists(files.join(PROJECT_DIR, "lib/utils.js")));
+    log("task.js 存在: " + files.exists(files.join(PROJECT_DIR, "lib/task.js")));
+
+    const utils = r("lib/utils.js");
+
+    utils.randomSleep(100);
+} catch (e) {
+    console.error(e);
+    toastLog("main.js 运行异常: " + e.message);
+}
 
 
-auto.waitFor();
+
 let running = false;
 let worker = null;
 
