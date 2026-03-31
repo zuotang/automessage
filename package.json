@@ -1,0 +1,24 @@
+{
+  "name": "automessage",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/zuotang/automessage#readme",
+  "bugs": {
+    "url": "https://github.com/zuotang/automessage/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zuotang/automessage.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "main.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "node gen-version.js && git add . && git commit -m \"release\" && git push"
+  }
+}

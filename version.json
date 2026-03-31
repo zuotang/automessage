@@ -1,17 +1,12 @@
 {
-  "version": "1.0.0",
-  "force": 1,
-  "minBootstrapVersion": "1.0.0",
-  "changelog": "初始版本",
+  "version": "1-e8225c1",
+  "force": 0,
   "entry": "main.js",
+  "changelog": "auto build 1-e8225c1",
   "files": [
     {
       "path": "main.js",
-      "url": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/main.js"
-    },
-    {
-      "path": "lib/utils.js",
-      "url": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/lib/utils.js"
+      "url": "https://raw.githubusercontent.com/zuotang/automessage/main/main.js"
     }
   ]
 }
