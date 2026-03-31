@@ -25,11 +25,7 @@ const data = {
     {
       path: "lib/utils.js",
       url: "https://raw.githubusercontent.com/zuotang/automessage/main/lib/utils.js"
-    },
-    {
-      path: "task.js",
-      url: "https://raw.githubusercontent.com/zuotang/automessage/main/task.js"
-    }
+    } 
   ]
 };
 
