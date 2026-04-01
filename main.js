@@ -6,28 +6,35 @@ const utils = require(files.join(PROJECT_DIR, "lib/utils.js"));
 let running = false;
 let worker = null;
 const DEBUG = true;
-const DEBUG_TOAST_DELAY_MS = 1000;
-const DEBUG_ERROR_DELAY_MS = 700;
 const COLLECT_RETRY_COUNT = 3;
 const COLLECT_RETRY_SLEEP_MS = 1200;
 const WAIT_MANUAL_STOP_AFTER_DONE = true;
+const DEBUG_MAX_LINES = 8;
+let debugLines = [];
+
+function pushDebugLine(msg) {
+    if (!DEBUG) return;
+    debugLines.push(msg);
+    if (debugLines.length > DEBUG_MAX_LINES) {
+        debugLines = debugLines.slice(debugLines.length - DEBUG_MAX_LINES);
+    }
+    ui.run(() => {
+        if (w && w.debugText) {
+            w.debugText.setText(debugLines.join("\n"));
+        }
+    });
+}
 
 function debugStep(step, detail, holdMs) {
     if (DEBUG) {
         const msg = detail ? (step + " " + detail) : step;
-        toast(msg);
-        if (holdMs && holdMs > 0) {
-            sleep(holdMs);
-        }
+        pushDebugLine(msg);
     }
 }
 
 function debugError(step, err, holdMs) {
     const msg = err ? (step + ": " + String(err)) : step;
-    toast(msg.length > 40 ? msg.substring(0, 40) : msg);
-    if (holdMs && holdMs > 0) {
-        sleep(holdMs);
-    }
+    pushDebugLine("错误 " + (msg.length > 80 ? msg.substring(0, 80) : msg));
 }
 
 function nodeText(node) {
@@ -163,8 +170,7 @@ function collectN50Items() {
 
     for (let i = 0; i < dataLen; i++) {
         try {
-            toast("进入第" + (i + 1) + "条");
-            sleep(DEBUG_TOAST_DELAY_MS);
+            debugStep("进入第" + (i + 1) + "条");
 
             const nameNode = names[i] ? names[i].node : null;
             const anchor = names[i];
@@ -184,11 +190,8 @@ function collectN50Items() {
 
             results.push(item);
             const nickHint = item.nickname ? item.nickname.substring(0, 6) : "昵称空";
-            toast("第" + (i + 1) + "条完成 " + nickHint);
-            sleep(DEBUG_TOAST_DELAY_MS);
+            debugStep("第" + (i + 1) + "条完成", nickHint);
         } catch (e) {
-            toast("第" + (i + 1) + "条失败");
-            sleep(DEBUG_ERROR_DELAY_MS);
             debugError("第" + (i + 1) + "条抓取失败", e);
         }
     }
@@ -217,9 +220,10 @@ function collectN50ItemsWithRetry() {
 
 // 悬浮窗
 let w = floaty.window(
-    <frame>
+    <vertical padding="6" bg="#66000000">
         <button id="toggle" text="开启81" w="60" h="40" bg="#AA00CC66"/>
-    </frame>
+        <text id="debugText" text="就绪" textColor="#FFFFFF" textSize="10sp" w="240" h="120"/>
+    </vertical>
 );
 
 // 左上角
@@ -239,7 +243,8 @@ function startTask() {
     if (running) return;
 
     running = true;
-    debugStep("开始运行");
+    debugLines = [];
+    pushDebugLine("开始运行");
     ui.run(() => {
         w.toggle.setText("关闭");
     });
@@ -271,6 +276,7 @@ function stopTask() {
         w.toggle.setText("开启");
     });
 
+    pushDebugLine("已停止");
     toast("已停止");
 }
 
