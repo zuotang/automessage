@@ -71,15 +71,45 @@ function ensureScreenCaptureReady() {
 function detectUnreadByColor(cardNode, screenImg) {
     if (!cardNode || !screenImg) return false;
     const b = cardNode.bounds();
-    const x = Math.max(0, parseInt(b.right - (b.width() * 0.35)));
-    const y = Math.max(0, b.top);
-    const w = Math.max(1, parseInt(b.width() * 0.35));
-    const h = Math.max(1, b.height());
-    const target = colors.parseColor("#ef355a");
+    // 红点常在卡片右侧靠中间位置，且有抗锯齿/主题偏色：扩大区域并匹配多组近似色
+    const x = Math.max(0, parseInt(b.right - (b.width() * 0.45)));
+    const y = Math.max(0, parseInt(b.top - (b.height() * 0.10)));
+    const w = Math.max(1, parseInt(b.width() * 0.55 + 24));
+    const h = Math.max(1, parseInt(b.height() * 1.20));
+    const colorList = ["#ef355a", "#ee3559", "#f03a60", "#ff375f", "#ec2f55"];
 
-    // 在卡片右侧区域找未读红点颜色，阈值略放宽以兼容抗锯齿
-    const p = images.findColorInRegion(screenImg, target, x, y, w, h, 12);
-    return !!p;
+    for (let i = 0; i < colorList.length; i++) {
+        const target = colors.parseColor(colorList[i]);
+        const p = images.findColorInRegion(screenImg, target, x, y, w, h, 26);
+        if (p) return true;
+    }
+    return false;
+}
+
+function sampleUnreadRegionColors(cardNode, screenImg) {
+    if (!cardNode || !screenImg) return "";
+    const b = cardNode.bounds();
+    const x = Math.max(0, parseInt(b.right - (b.width() * 0.45)));
+    const y = Math.max(0, parseInt(b.top - (b.height() * 0.10)));
+    const w = Math.max(1, parseInt(b.width() * 0.55 + 24));
+    const h = Math.max(1, parseInt(b.height() * 1.20));
+    const cx = x + parseInt(w * 0.72);
+    const cy = y + parseInt(h * 0.50);
+    const points = [
+        [cx, cy],
+        [cx - 8, cy],
+        [cx + 8, cy],
+        [cx, cy - 8],
+        [cx, cy + 8]
+    ];
+    const out = [];
+    for (let i = 0; i < points.length; i++) {
+        const px = Math.max(0, Math.min(device.width - 1, points[i][0]));
+        const py = Math.max(0, Math.min(device.height - 1, points[i][1]));
+        const c = images.pixel(screenImg, px, py);
+        out.push(colors.toString(c));
+    }
+    return out.join(",");
 }
 
 function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
@@ -285,6 +315,7 @@ function collectN50Items() {
             debugStep("content", item.content || "");
             debugStep("date", item.date || "");
             debugStep("unread", item.unread ? "是" : "否");
+            debugStep("color", sampleUnreadRegionColors(card, screenImg));
         } catch (e) {
             debugError("第" + (i + 1) + "条抓取失败", e);
         }
