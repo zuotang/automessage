@@ -76,26 +76,29 @@ function nodesByIdSorted(viewId) {
     return arr;
 }
 
-function pickNearest(anchor, candidates, usedIdx, maxDy, preferLeft) {
-    if (!anchor) return null;
-    let best = null;
+function pickNodeInCard(cardRect, candidates, usedIdx, preferLeft) {
+    if (!cardRect) return null;
+    let bestScore = null;
     let bestIndex = -1;
-    const ay = anchor.cy;
-    const ax = anchor.cx;
+    const cardCx = (cardRect.left + cardRect.right) / 2;
+    const cardCy = (cardRect.top + cardRect.bottom) / 2;
 
     for (let i = 0; i < candidates.length; i++) {
         if (usedIdx[i]) continue;
         const c = candidates[i];
-        const dy = Math.abs(c.cy - ay);
-        if (dy > maxDy) continue;
+        const b = c.node.bounds();
+        const cx = b.centerX();
+        const cy = b.centerY();
 
-        // 头像通常在左侧，优先选择左侧节点；其余字段不限制左右
-        if (preferLeft && c.cx > ax + 80) continue;
+        const inY = cy >= cardRect.top - 40 && cy <= cardRect.bottom + 40;
+        const inX = cx >= cardRect.left - 40 && cx <= cardRect.right + 40;
+        if (!inY || !inX) continue;
 
-        const dx = Math.abs(c.cx - ax);
-        const score = dy * 10000 + dx;
-        if (best === null || score < best) {
-            best = score;
+        if (preferLeft && cx > cardCx + 80) continue;
+
+        const score = Math.abs(cy - cardCy) * 10000 + Math.abs(cx - cardCx);
+        if (bestScore === null || score < bestScore) {
+            bestScore = score;
             bestIndex = i;
         }
     }
@@ -154,17 +157,22 @@ function ensureInboxPage(timeoutMs) {
 
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
-    debugStep("开始抓取n50");
-    const names = nodesByIdSorted("as7");
-    const contents = nodesByIdSorted("igq");
-    const dates = nodesByIdSorted("igt");
+    debugStep("开始抓取nwg");
+    const cards = nodesByIdSorted("nwg");
+    const names = nodesByIdSorted("s_z");
+    const contents = nodesByIdSorted("i03");
+    const dates = nodesByIdSorted("i08");
     const avatars = nodesByIdSorted("ogb");
-    debugStep("节点数", "n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
+    debugStep("节点数", "card" + cards.length + " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
 
     const usedContent = {};
     const usedDate = {};
     const usedAvatar = {};
-    let dataLen = names.length;
+    const usedName = {};
+    const anchorByNames = false;
+    const anchors = cards;
+    let dataLen = anchors.length;
+    debugStep("锚点", "n50");
     debugStep("抓取到条目", String(dataLen));
     const results = [];
 
@@ -172,11 +180,11 @@ function collectN50Items() {
         try {
             debugStep("进入第" + (i + 1) + "条");
 
-            const nameNode = names[i] ? names[i].node : null;
-            const anchor = names[i];
-            const contentNode = pickNearest(anchor, contents, usedContent, 220, false);
-            const dateNode = pickNearest(anchor, dates, usedDate, 220, false);
-            const avatarNode = pickNearest(anchor, avatars, usedAvatar, 220, true);
+            const anchorRect = anchors[i].node.bounds();
+            const nameNode = anchorByNames ? anchors[i].node : pickNodeInCard(anchorRect, names, usedName, false);
+            const contentNode = pickNodeInCard(anchorRect, contents, usedContent, false);
+            const dateNode = pickNodeInCard(anchorRect, dates, usedDate, false);
+            const avatarNode = pickNodeInCard(anchorRect, avatars, usedAvatar, true);
 
             let item = {
                 nickname: nodeText(nameNode),
@@ -207,11 +215,11 @@ function collectN50ItemsWithRetry() {
         if (items.length > best.length) {
             best = items;
         }
-        if (items.length > 1) {
+        if (items.length > 0) {
             return items;
         }
         if (i < COLLECT_RETRY_COUNT - 1) {
-            debugStep("条目过少重试", String(i + 2));
+            debugStep("0条重试", String(i + 2));
             sleep(COLLECT_RETRY_SLEEP_MS);
         }
     }
