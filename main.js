@@ -276,7 +276,7 @@ function collectN50ItemsWithRetry() {
 // 悬浮窗
 let w = floaty.window(
     <vertical padding="6" bg="#66000000">
-        <button id="toggle" text="开启81" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启82" w="60" h="40" bg="#AA00CC66"/>
         <text id="debugText" text="就绪" textColor="#FFFFFF" textSize="10sp" w="240" h="120"/>
     </vertical>
 );
