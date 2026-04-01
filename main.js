@@ -52,7 +52,7 @@ function collectN50Items() {
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启77" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启78" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
