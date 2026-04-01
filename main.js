@@ -11,6 +11,7 @@ const COLLECT_RETRY_SLEEP_MS = 1200;
 const WAIT_MANUAL_STOP_AFTER_DONE = true;
 const DEBUG_MAX_LINES = 8;
 let debugLines = [];
+let screenCaptureReady = false;
 
 function pushDebugLine(msg) {
     if (!DEBUG) return;
@@ -51,6 +52,34 @@ function nodeBounds(node) {
         right: b.right,
         bottom: b.bottom
     };
+}
+
+function ensureScreenCaptureReady() {
+    if (screenCaptureReady) return true;
+    try {
+        screenCaptureReady = requestScreenCapture(false);
+        if (!screenCaptureReady) {
+            debugStep("截图权限失败");
+        }
+    } catch (e) {
+        debugError("截图权限异常", e);
+        screenCaptureReady = false;
+    }
+    return screenCaptureReady;
+}
+
+function detectUnreadByColor(cardNode, screenImg) {
+    if (!cardNode || !screenImg) return false;
+    const b = cardNode.bounds();
+    const x = Math.max(0, parseInt(b.right - (b.width() * 0.35)));
+    const y = Math.max(0, b.top);
+    const w = Math.max(1, parseInt(b.width() * 0.35));
+    const h = Math.max(1, b.height());
+    const target = colors.parseColor("#ef355a");
+
+    // 在卡片右侧区域找未读红点颜色，阈值略放宽以兼容抗锯齿
+    const p = images.findColorInRegion(screenImg, target, x, y, w, h, 12);
+    return !!p;
 }
 
 function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
@@ -166,6 +195,21 @@ function showItemsDialog(items) {
     });
 }
 
+function clickFirstUnreadItem(items) {
+    for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (!it || !it.unread || !it.cardBounds) continue;
+        const b = it.cardBounds;
+        const x = parseInt((b.left + b.right) / 2);
+        const y = parseInt((b.top + b.bottom) / 2);
+        debugStep("点击未读", "第" + (i + 1) + "条");
+        utils.randomClick(x, y);
+        sleep(1200);
+        return true;
+    }
+    return false;
+}
+
 function isInInboxPage() {
     return id("n50").exists() || id("as7").exists() || id("igq").exists();
 }
@@ -207,6 +251,10 @@ function collectN50Items() {
     debugStep("开始抓取nwg");
     const rawCards = id("nwg").visibleToUser(true).find();
     debugStep("抓取到条目", String(rawCards.size()));
+    let screenImg = null;
+    if (ensureScreenCaptureReady()) {
+        screenImg = captureScreen();
+    }
     const results = [];
 
     for (let i = 0; i < rawCards.size(); i++) {
@@ -224,6 +272,8 @@ function collectN50Items() {
                 nickname: nodeText(nameNode),
                 content: nodeText(contentNode),
                 date: nodeText(dateNode),
+                unread: detectUnreadByColor(card, screenImg),
+                cardBounds: nodeBounds(card),
                 avatar: {
                     textOrDesc: nodeText(avatarNode),
                     bounds: nodeBounds(avatarNode)
@@ -234,11 +284,15 @@ function collectN50Items() {
             debugStep("name", item.nickname || "");
             debugStep("content", item.content || "");
             debugStep("date", item.date || "");
+            debugStep("unread", item.unread ? "是" : "否");
         } catch (e) {
             debugError("第" + (i + 1) + "条抓取失败", e);
         }
     }
 
+    if (screenImg) {
+        try { screenImg.recycle(); } catch (e) {}
+    }
     debugStep("抓取结束", "有效条目=" + results.length);
     return results;
 }
@@ -335,8 +389,14 @@ function runTask() {
 
     debugStep("已在消息页");
     const items = collectN50ItemsWithRetry();
-    debugStep("准备展示结果", "条目数=" + items.length);
-    showItemsDialog(items);
+    const clickedUnread = clickFirstUnreadItem(items);
+    if (clickedUnread) {
+        debugStep("已进入未读聊天");
+    } else {
+        debugStep("无未读", "展示结果");
+        debugStep("准备展示结果", "条目数=" + items.length);
+        showItemsDialog(items);
+    }
     debugStep("runTask结束");
 
     if (WAIT_MANUAL_STOP_AFTER_DONE) {
