@@ -25,12 +25,13 @@ function nodeBounds(node) {
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     const cards = id("n50").find();
-    toast('抓取到' + cards.size() + '条数据');
+    let dataLen=cards.size();
+    toast('抓取到' + dataLen + '条数据');
     const results = [];
 
-    for (let i = 0; i < cards.size(); i++) {
+    for (let i = 0; i < dataLen; i++) {
         const card = cards.get(i);
-
+        toast('抓取' +i + '的数据');
         const nameNode = card.findOnce(id("as7"));
         const contentNode = card.findOnce(id("igq"));
         const dateNode = card.findOnce(id("igt"));
@@ -55,7 +56,7 @@ function collectN50Items() {
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启80" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启81" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
