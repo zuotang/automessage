@@ -6,17 +6,21 @@ const utils = require(files.join(PROJECT_DIR, "lib/utils.js"));
 let running = false;
 let worker = null;
 const DEBUG = true;
+const DEBUG_TOAST_DELAY_MS = 1000;
+const DEBUG_ERROR_DELAY_MS = 700;
 
 function debugStep(step, detail) {
     if (DEBUG) {
         const msg = detail ? (step + " " + detail) : step;
         toast(msg);
+        sleep(DEBUG_TOAST_DELAY_MS);
     }
 }
 
 function debugError(step, err) {
     const msg = err ? (step + ": " + String(err)) : step;
     toast(msg.length > 40 ? msg.substring(0, 40) : msg);
+    sleep(DEBUG_ERROR_DELAY_MS);
 }
 
 function nodeText(node) {
@@ -36,11 +40,15 @@ function nodeBounds(node) {
 }
 
 function nodesByIdSorted(viewId) {
-    const list = id(viewId).find();
+    const list = id(viewId).visibleToUser(true).find();
     const arr = [];
+    const seen = {};
     for (let i = 0; i < list.size(); i++) {
         const node = list.get(i);
         const b = node.bounds();
+        const key = b.left + "_" + b.top + "_" + b.right + "_" + b.bottom;
+        if (seen[key]) continue;
+        seen[key] = true;
         arr.push({
             node: node,
             cy: b.centerY(),
@@ -52,6 +60,35 @@ function nodesByIdSorted(viewId) {
         return a.cx - b.cx;
     });
     return arr;
+}
+
+function pickNearest(anchor, candidates, usedIdx, maxDy, preferLeft) {
+    if (!anchor) return null;
+    let best = null;
+    let bestIndex = -1;
+    const ay = anchor.cy;
+    const ax = anchor.cx;
+
+    for (let i = 0; i < candidates.length; i++) {
+        if (usedIdx[i]) continue;
+        const c = candidates[i];
+        const dy = Math.abs(c.cy - ay);
+        if (dy > maxDy) continue;
+
+        // 头像通常在左侧，优先选择左侧节点；其余字段不限制左右
+        if (preferLeft && c.cx > ax + 80) continue;
+
+        const dx = Math.abs(c.cx - ax);
+        const score = dy * 10000 + dx;
+        if (best === null || score < best) {
+            best = score;
+            bestIndex = i;
+        }
+    }
+
+    if (bestIndex < 0) return null;
+    usedIdx[bestIndex] = true;
+    return candidates[bestIndex].node;
 }
 
 function showItemsDialog(items) {
@@ -108,7 +145,11 @@ function collectN50Items() {
     const contents = nodesByIdSorted("igq");
     const dates = nodesByIdSorted("igt");
     const avatars = nodesByIdSorted("ogb");
+    debugStep("节点数", "n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
 
+    const usedContent = {};
+    const usedDate = {};
+    const usedAvatar = {};
     let dataLen = names.length;
     debugStep("抓取到条目", String(dataLen));
     const results = [];
@@ -116,9 +157,10 @@ function collectN50Items() {
     for (let i = 0; i < dataLen; i++) {
         try {
             const nameNode = names[i] ? names[i].node : null;
-            const contentNode = contents[i] ? contents[i].node : null;
-            const dateNode = dates[i] ? dates[i].node : null;
-            const avatarNode = avatars[i] ? avatars[i].node : null;
+            const anchor = names[i];
+            const contentNode = pickNearest(anchor, contents, usedContent, 220, false);
+            const dateNode = pickNearest(anchor, dates, usedDate, 220, false);
+            const avatarNode = pickNearest(anchor, avatars, usedAvatar, 220, true);
 
             let item = {
                 nickname: nodeText(nameNode),
