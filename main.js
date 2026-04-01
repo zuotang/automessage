@@ -35,10 +35,26 @@ function nodeBounds(node) {
     };
 }
 
-function findChildById(card, viewId) {
+function isCenterInRect(node, rect) {
+    if (!node || !rect) return false;
+    const b = node.bounds();
+    const cx = b.centerX();
+    const cy = b.centerY();
+    return cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom;
+}
+
+function findChildByIdInCard(card, viewId) {
     try {
-        const list = card.find(id(viewId));
-        if (list && list.size() > 0) return list.get(0);
+        const cardRect = nodeBounds(card);
+        if (!cardRect) return null;
+
+        const list = id(viewId).find();
+        for (let i = 0; i < list.size(); i++) {
+            const node = list.get(i);
+            if (isCenterInRect(node, cardRect)) {
+                return node;
+            }
+        }
     } catch (e) {}
     return null;
 }
@@ -66,10 +82,10 @@ function collectN50Items() {
         try {
             const card = cards.get(i);
 
-            const nameNode = findChildById(card, "as7");
-            const contentNode = findChildById(card, "igq");
-            const dateNode = findChildById(card, "igt");
-            const avatarNode = findChildById(card, "ogb");
+        const nameNode = findChildByIdInCard(card, "as7");
+        const contentNode = findChildByIdInCard(card, "igq");
+        const dateNode = findChildByIdInCard(card, "igt");
+        const avatarNode = findChildByIdInCard(card, "ogb");
 
             let item = {
                 nickname: nodeText(nameNode),
