@@ -53,9 +53,17 @@ function nodeBounds(node) {
     };
 }
 
-function nodesByIdSorted(viewId, dedupByBounds) {
+function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
     if (dedupByBounds === undefined) dedupByBounds = true;
-    const list = id(viewId).visibleToUser(true).find();
+    if (isVisibleOnly === undefined) isVisibleOnly = true;
+    
+    let list = [];//
+    if(isVisibleOnly){
+        list = id(viewId).visibleToUser(isVisibleOnly).find();
+    }else{
+        list = id(viewId).find();
+    }
+    
     const arr = [];
     const seen = {};
     for (let i = 0; i < list.size(); i++) {
@@ -84,7 +92,7 @@ function nodesByIdSorted(viewId, dedupByBounds) {
 
 // n50/nwg 这类卡片容器常有父子重叠节点：按“行”分组，每行保留面积最大的一个
 function cardAnchorsByRow(cardId) {
-    const raw = nodesByIdSorted(cardId, false);
+    const raw = nodesByIdSorted(cardId, false,false);
     const groups = [];
     const ROW_MERGE_DY = 18;
 
@@ -211,8 +219,7 @@ function collectN50Items() {
     const usedName = {};
     const anchorByNames = false;
     const anchors = cards;
-    let dataLen = anchors.length;
-    debugStep("锚点", "n50");
+    let dataLen = anchors.length; 
     debugStep("抓取到条目", String(dataLen));
     const results = [];
 
