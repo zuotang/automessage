@@ -9,18 +9,22 @@ const DEBUG = true;
 const DEBUG_TOAST_DELAY_MS = 1000;
 const DEBUG_ERROR_DELAY_MS = 700;
 
-function debugStep(step, detail) {
+function debugStep(step, detail, holdMs) {
     if (DEBUG) {
         const msg = detail ? (step + " " + detail) : step;
         toast(msg);
-        sleep(DEBUG_TOAST_DELAY_MS);
+        if (holdMs && holdMs > 0) {
+            sleep(holdMs);
+        }
     }
 }
 
-function debugError(step, err) {
+function debugError(step, err, holdMs) {
     const msg = err ? (step + ": " + String(err)) : step;
     toast(msg.length > 40 ? msg.substring(0, 40) : msg);
-    sleep(DEBUG_ERROR_DELAY_MS);
+    if (holdMs && holdMs > 0) {
+        sleep(holdMs);
+    }
 }
 
 function nodeText(node) {
@@ -174,9 +178,9 @@ function collectN50Items() {
 
             results.push(item);
             const nickHint = item.nickname ? item.nickname.substring(0, 6) : "空";
-            debugStep("第" + (i + 1) + "条", nickHint);
+            debugStep("第" + (i + 1) + "条", nickHint, DEBUG_TOAST_DELAY_MS);
         } catch (e) {
-            debugError("第" + (i + 1) + "条抓取失败", e);
+            debugError("第" + (i + 1) + "条抓取失败", e, DEBUG_ERROR_DELAY_MS);
         }
     }
 
