@@ -205,33 +205,20 @@ function ensureInboxPage(timeoutMs) {
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     debugStep("开始抓取nwg");
-    const rawCards = nodesByIdSorted("nwg", false);
- 
-    const names = nodesByIdSorted("s_z");
-    const contents = nodesByIdSorted("i03");
-    const dates = nodesByIdSorted("i08");
-    const avatars = nodesByIdSorted("ogb");
-    debugStep("节点数", "rawCard" + rawCards.length +    " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
-
-    const usedContent = {};
-    const usedDate = {};
-    const usedAvatar = {};
-    const usedName = {};
-    const anchorByNames = false;
-    const anchors = rawCards;
-    let dataLen = rawCards.length; 
-    debugStep("抓取到条目", String(dataLen));
+    const rawCards = id("nwg").visibleToUser(true).find();
+    debugStep("抓取到条目", String(rawCards.size()));
     const results = [];
 
-    for (let i = 0; i < dataLen; i++) {
+    for (let i = 0; i < rawCards.size(); i++) {
         try {
             debugStep("进入第" + (i + 1) + "条");
+            let card = rawCards.get(i);
 
-            const anchorRect = anchors[i].node.bounds();
-            const nameNode = anchorByNames ? anchors[i].node : pickNodeInCard(anchorRect, names, usedName, false);
-            const contentNode = pickNodeInCard(anchorRect, contents, usedContent, false);
-            const dateNode = pickNodeInCard(anchorRect, dates, usedDate, false);
-            const avatarNode = pickNodeInCard(anchorRect, avatars, usedAvatar, true);
+            // 在当前卡片内查找
+            let nameNode = card.findOne(id("s_z"));
+            let contentNode = card.findOne(id("i03"));
+            let dateNode = card.findOne(id("i08"));
+            let avatarNode = card.findOne(id("ogb"));
 
             let item = {
                 nickname: nodeText(nameNode),
@@ -244,8 +231,9 @@ function collectN50Items() {
             };
 
             results.push(item);
-            const nickHint = item.nickname ? item.nickname.substring(0, 6) : "昵称空";
-            debugStep("第" + (i + 1) + "条完成", nickHint);
+            debugStep("name", item.nickname || "");
+            debugStep("content", item.content || "");
+            debugStep("date", item.date || "");
         } catch (e) {
             debugError("第" + (i + 1) + "条抓取失败", e);
         }
