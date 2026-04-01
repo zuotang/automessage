@@ -211,7 +211,7 @@ function collectN50Items() {
     const contents = nodesByIdSorted("i03");
     const dates = nodesByIdSorted("i08");
     const avatars = nodesByIdSorted("ogb");
-    debugStep("节点数", "rawCard" + rawCards.length + " card" + cards.length + " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
+    debugStep("节点数", "rawCard" + rawCards.length +    " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
 
     const usedContent = {};
     const usedDate = {};
