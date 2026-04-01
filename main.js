@@ -13,6 +13,36 @@ const DEBUG_MAX_LINES = 8;
 let debugLines = [];
 let screenCaptureReady = false;
 
+function ensureStartupPermissions() {
+    try {
+        auto.waitFor();
+    } catch (e) {
+        toastLog("无障碍服务未就绪: " + e);
+    }
+
+    try {
+        if (typeof floaty !== "undefined" && floaty.checkPermission && !floaty.checkPermission()) {
+            floaty.requestPermission();
+            sleep(800);
+        }
+    } catch (e) {
+        toastLog("悬浮窗权限检查失败: " + e);
+    }
+
+    try {
+        if (!screenCaptureReady) {
+            screenCaptureReady = requestScreenCapture(false);
+            if (!screenCaptureReady) {
+                toast("请授权截图权限");
+            }
+        }
+    } catch (e) {
+        toastLog("截图权限申请失败: " + e);
+    }
+}
+
+ensureStartupPermissions();
+
 function pushDebugLine(msg) {
     if (!DEBUG) return;
     debugLines.push(msg);
@@ -369,6 +399,12 @@ w.toggle.click(() => {
 // 启动任务
 function startTask() {
     if (running) return;
+
+    if (!ensureScreenCaptureReady()) {
+        pushDebugLine("未授权截图，任务未启动");
+        toast("请先授权截图");
+        return;
+    }
 
     running = true;
     debugLines = [];
