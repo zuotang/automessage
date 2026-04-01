@@ -53,7 +53,8 @@ function nodeBounds(node) {
     };
 }
 
-function nodesByIdSorted(viewId) {
+function nodesByIdSorted(viewId, dedupByBounds) {
+    if (dedupByBounds === undefined) dedupByBounds = true;
     const list = id(viewId).visibleToUser(true).find();
     const arr = [];
     const seen = {};
@@ -61,12 +62,17 @@ function nodesByIdSorted(viewId) {
         const node = list.get(i);
         const b = node.bounds();
         const key = b.left + "_" + b.top + "_" + b.right + "_" + b.bottom;
-        if (seen[key]) continue;
-        seen[key] = true;
+        if (dedupByBounds) {
+            if (seen[key]) continue;
+            seen[key] = true;
+        }
         arr.push({
             node: node,
             cy: b.centerY(),
-            cx: b.centerX()
+            cx: b.centerX(),
+            top: b.top,
+            bottom: b.bottom,
+            area: Math.max(1, (b.right - b.left) * (b.bottom - b.top))
         });
     }
     arr.sort((a, b) => {
@@ -74,6 +80,39 @@ function nodesByIdSorted(viewId) {
         return a.cx - b.cx;
     });
     return arr;
+}
+
+// n50/nwg 这类卡片容器常有父子重叠节点：按“行”分组，每行保留面积最大的一个
+function cardAnchorsByRow(cardId) {
+    const raw = nodesByIdSorted(cardId, false);
+    const groups = [];
+    const ROW_MERGE_DY = 18;
+
+    for (let i = 0; i < raw.length; i++) {
+        const cur = raw[i];
+        if (groups.length === 0) {
+            groups.push([cur]);
+            continue;
+        }
+        const lastGroup = groups[groups.length - 1];
+        const last = lastGroup[lastGroup.length - 1];
+        if (Math.abs(cur.cy - last.cy) <= ROW_MERGE_DY) {
+            lastGroup.push(cur);
+        } else {
+            groups.push([cur]);
+        }
+    }
+
+    const anchors = [];
+    for (let g = 0; g < groups.length; g++) {
+        const row = groups[g];
+        let best = row[0];
+        for (let i = 1; i < row.length; i++) {
+            if (row[i].area > best.area) best = row[i];
+        }
+        anchors.push(best);
+    }
+    return anchors;
 }
 
 function pickNodeInCard(cardRect, candidates, usedIdx, preferLeft) {
@@ -158,12 +197,13 @@ function ensureInboxPage(timeoutMs) {
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     debugStep("开始抓取nwg");
-    const cards = nodesByIdSorted("nwg");
+    const rawCards = nodesByIdSorted("nwg", false);
+    const cards = cardAnchorsByRow("nwg");
     const names = nodesByIdSorted("s_z");
     const contents = nodesByIdSorted("i03");
     const dates = nodesByIdSorted("i08");
     const avatars = nodesByIdSorted("ogb");
-    debugStep("节点数", "card" + cards.length + " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
+    debugStep("节点数", "rawCard" + rawCards.length + " card" + cards.length + " n" + names.length + " c" + contents.length + " d" + dates.length + " a" + avatars.length);
 
     const usedContent = {};
     const usedDate = {};
