@@ -70,6 +70,42 @@ function showItemsDialog(items) {
     });
 }
 
+function isInInboxPage() {
+    return id("n50").exists() || id("as7").exists() || id("igq").exists();
+}
+
+function ensureInboxPage(timeoutMs) {
+    const start = Date.now();
+    let lastLaunchAt = 0;
+
+    while (running && Date.now() - start < timeoutMs) {
+        if (isInInboxPage()) {
+            return true;
+        }
+
+        const pkg = currentPackage();
+        if (pkg !== "com.zhiliaoapp.musically") {
+            if (Date.now() - lastLaunchAt > 3000) {
+                debugStep("启动应用");
+                app.launchPackage("com.zhiliaoapp.musically");
+                lastLaunchAt = Date.now();
+            }
+            sleep(800);
+            continue;
+        }
+
+        const clicked = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.75, () => !running);
+        if (clicked) {
+            debugStep("已点消息入口");
+            sleep(1200);
+        } else {
+            sleep(500);
+        }
+    }
+
+    return isInInboxPage();
+}
+
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     debugStep("开始抓取n50");
@@ -169,26 +205,18 @@ function stopTask() {
 
 // 主逻辑
 function runTask() {
-    debugStep("启动应用", "com.zhiliaoapp.musically");
-    app.launchPackage("com.zhiliaoapp.musically");
-
-    utils.randomSleep(2000);
-
     if (!running) return;
-
-    debugStep("尝试点击Inbox");
-    let ok = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.75, () => !running);
-
-    if (ok) {
-        debugStep("点击Inbox成功");
-        utils.randomSleep(1200);
-
-        const items = collectN50Items();
-        debugStep("准备展示结果", "条目数=" + items.length);
-        showItemsDialog(items);
-    } else {
-        debugStep("没找到Inbox");
+    debugStep("检查消息页");
+    const ok = ensureInboxPage(20000);
+    if (!ok) {
+        debugStep("20秒未进入消息页");
+        return;
     }
+
+    debugStep("已在消息页");
+    const items = collectN50Items();
+    debugStep("准备展示结果", "条目数=" + items.length);
+    showItemsDialog(items);
 
     utils.randomSleep(1000);
     debugStep("开始上滑");
