@@ -25,6 +25,7 @@ function nodeBounds(node) {
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     const cards = id("n50").find();
+    toast('抓取到' + cards.size() + '条数据');
     const results = [];
 
     for (let i = 0; i < cards.size(); i++) {
@@ -52,7 +53,7 @@ function collectN50Items() {
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启78" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启79" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
@@ -122,6 +123,7 @@ function runTask() {
         utils.randomSleep(1200);
 
         const items = collectN50Items();
+          toast("抓完数据");
         dialogs.alert("n50抓取结果", "条目数: " + items.length + "\n\n" + JSON.stringify(items, null, 2));
     } else {
         toast("没找到");
