@@ -206,7 +206,7 @@ function ensureInboxPage(timeoutMs) {
 function collectN50Items() {
     debugStep("开始抓取nwg");
     const rawCards = nodesByIdSorted("nwg", false);
-    const cards = cardAnchorsByRow("nwg");
+ 
     const names = nodesByIdSorted("s_z");
     const contents = nodesByIdSorted("i03");
     const dates = nodesByIdSorted("i08");
@@ -218,8 +218,8 @@ function collectN50Items() {
     const usedAvatar = {};
     const usedName = {};
     const anchorByNames = false;
-    const anchors = cards;
-    let dataLen = anchors.length; 
+    const anchors = rawCards;
+    let dataLen = rawCards.length; 
     debugStep("抓取到条目", String(dataLen));
     const results = [];
 
