@@ -8,6 +8,9 @@ let worker = null;
 const DEBUG = true;
 const DEBUG_TOAST_DELAY_MS = 1000;
 const DEBUG_ERROR_DELAY_MS = 700;
+const COLLECT_RETRY_COUNT = 3;
+const COLLECT_RETRY_SLEEP_MS = 1200;
+const WAIT_MANUAL_STOP_AFTER_DONE = true;
 
 function debugStep(step, detail, holdMs) {
     if (DEBUG) {
@@ -160,6 +163,9 @@ function collectN50Items() {
 
     for (let i = 0; i < dataLen; i++) {
         try {
+            toast("进入第" + (i + 1) + "条");
+            sleep(DEBUG_TOAST_DELAY_MS);
+
             const nameNode = names[i] ? names[i].node : null;
             const anchor = names[i];
             const contentNode = pickNearest(anchor, contents, usedContent, 220, false);
@@ -177,15 +183,36 @@ function collectN50Items() {
             };
 
             results.push(item);
-            const nickHint = item.nickname ? item.nickname.substring(0, 6) : "空";
-            debugStep("第" + (i + 1) + "条", nickHint, DEBUG_TOAST_DELAY_MS);
+            const nickHint = item.nickname ? item.nickname.substring(0, 6) : "昵称空";
+            toast("第" + (i + 1) + "条完成 " + nickHint);
+            sleep(DEBUG_TOAST_DELAY_MS);
         } catch (e) {
-            debugError("第" + (i + 1) + "条抓取失败", e, DEBUG_ERROR_DELAY_MS);
+            toast("第" + (i + 1) + "条失败");
+            sleep(DEBUG_ERROR_DELAY_MS);
+            debugError("第" + (i + 1) + "条抓取失败", e);
         }
     }
 
     debugStep("抓取结束", "有效条目=" + results.length);
     return results;
+}
+
+function collectN50ItemsWithRetry() {
+    let best = [];
+    for (let i = 0; i < COLLECT_RETRY_COUNT && running; i++) {
+        const items = collectN50Items();
+        if (items.length > best.length) {
+            best = items;
+        }
+        if (items.length > 1) {
+            return items;
+        }
+        if (i < COLLECT_RETRY_COUNT - 1) {
+            debugStep("条目过少重试", String(i + 2));
+            sleep(COLLECT_RETRY_SLEEP_MS);
+        }
+    }
+    return best;
 }
 
 // 悬浮窗
@@ -258,15 +285,17 @@ function runTask() {
     }
 
     debugStep("已在消息页");
-    const items = collectN50Items();
+    const items = collectN50ItemsWithRetry();
     debugStep("准备展示结果", "条目数=" + items.length);
     showItemsDialog(items);
-
-    utils.randomSleep(1000);
-    debugStep("开始上滑");
-    utils.swipeUpPageHuman();
-    utils.randomSleep(1000);
     debugStep("runTask结束");
+
+    if (WAIT_MANUAL_STOP_AFTER_DONE) {
+        debugStep("等待手动停止");
+        while (running) {
+            sleep(300);
+        }
+    }
 }
 
 // 防止退出
