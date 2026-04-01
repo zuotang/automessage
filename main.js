@@ -35,28 +35,23 @@ function nodeBounds(node) {
     };
 }
 
-function isCenterInRect(node, rect) {
-    if (!node || !rect) return false;
-    const b = node.bounds();
-    const cx = b.centerX();
-    const cy = b.centerY();
-    return cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom;
-}
-
-function findChildByIdInCard(card, viewId) {
-    try {
-        const cardRect = nodeBounds(card);
-        if (!cardRect) return null;
-
-        const list = id(viewId).find();
-        for (let i = 0; i < list.size(); i++) {
-            const node = list.get(i);
-            if (isCenterInRect(node, cardRect)) {
-                return node;
-            }
-        }
-    } catch (e) {}
-    return null;
+function nodesByIdSorted(viewId) {
+    const list = id(viewId).find();
+    const arr = [];
+    for (let i = 0; i < list.size(); i++) {
+        const node = list.get(i);
+        const b = node.bounds();
+        arr.push({
+            node: node,
+            cy: b.centerY(),
+            cx: b.centerX()
+        });
+    }
+    arr.sort((a, b) => {
+        if (a.cy !== b.cy) return a.cy - b.cy;
+        return a.cx - b.cx;
+    });
+    return arr;
 }
 
 function showItemsDialog(items) {
@@ -109,19 +104,21 @@ function ensureInboxPage(timeoutMs) {
 // 获取多个 id=n50 的元素数据
 function collectN50Items() {
     debugStep("开始抓取n50");
-    const cards = id("n50").find();
-    let dataLen = cards.size();
+    const names = nodesByIdSorted("as7");
+    const contents = nodesByIdSorted("igq");
+    const dates = nodesByIdSorted("igt");
+    const avatars = nodesByIdSorted("ogb");
+
+    let dataLen = names.length;
     debugStep("抓取到条目", String(dataLen));
     const results = [];
 
     for (let i = 0; i < dataLen; i++) {
         try {
-            const card = cards.get(i);
-
-        const nameNode = findChildByIdInCard(card, "as7");
-        const contentNode = findChildByIdInCard(card, "igq");
-        const dateNode = findChildByIdInCard(card, "igt");
-        const avatarNode = findChildByIdInCard(card, "ogb");
+            const nameNode = names[i] ? names[i].node : null;
+            const contentNode = contents[i] ? contents[i].node : null;
+            const dateNode = dates[i] ? dates[i].node : null;
+            const avatarNode = avatars[i] ? avatars[i].node : null;
 
             let item = {
                 nickname: nodeText(nameNode),
@@ -134,7 +131,8 @@ function collectN50Items() {
             };
 
             results.push(item);
-            debugStep("第" + (i + 1) + "条完成");
+            const nickHint = item.nickname ? item.nickname.substring(0, 6) : "空";
+            debugStep("第" + (i + 1) + "条", nickHint);
         } catch (e) {
             debugError("第" + (i + 1) + "条抓取失败", e);
         }
