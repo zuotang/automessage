@@ -35,8 +35,7 @@ function collectN50Items() {
         const contentNode = card.findOnce(id("igq"));
         const dateNode = card.findOnce(id("igt"));
         const avatarNode = card.findOnce(id("ogb"));
-
-        results.push({
+        let item={
             nickname: nodeText(nameNode),
             content: nodeText(contentNode),
             date: nodeText(dateNode),
@@ -44,7 +43,10 @@ function collectN50Items() {
                 textOrDesc: nodeText(avatarNode),
                 bounds: nodeBounds(avatarNode)
             }
-        });
+        }
+        toast(JSON.stringify(item));
+        
+        results.push(item);
     }
 
     return results;
@@ -53,7 +55,7 @@ function collectN50Items() {
 // 悬浮窗
 let w = floaty.window(
     <frame>
-        <button id="toggle" text="开启79" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启80" w="60" h="40" bg="#AA00CC66"/>
     </frame>
 );
 
@@ -75,7 +77,7 @@ function startTask() {
 
     running = true;
     ui.run(() => {
-        w.toggle.setText("关闭33");
+        w.toggle.setText("关闭");
     });
 
     worker = threads.start(function () {
@@ -87,7 +89,7 @@ function startTask() {
         } finally {
             running = false;
             ui.run(() => {
-                w.toggle.setText("开启66");
+                w.toggle.setText("开启");
             });
         }
     });
