@@ -6,6 +6,49 @@ const utils = require(files.join(PROJECT_DIR, "lib/utils.js"));
 let running = false;
 let worker = null;
 
+function nodeText(node) {
+    if (!node) return "";
+    return node.text() || node.desc() || "";
+}
+
+function nodeBounds(node) {
+    if (!node) return null;
+    const b = node.bounds();
+    return {
+        left: b.left,
+        top: b.top,
+        right: b.right,
+        bottom: b.bottom
+    };
+}
+
+// 获取多个 id=n50 的元素数据
+function collectN50Items() {
+    const cards = id("n50").find();
+    const results = [];
+
+    for (let i = 0; i < cards.size(); i++) {
+        const card = cards.get(i);
+
+        const nameNode = card.findOnce(id("as7"));
+        const contentNode = card.findOnce(id("igq"));
+        const dateNode = card.findOnce(id("igt"));
+        const avatarNode = card.findOnce(id("ogb"));
+
+        results.push({
+            nickname: nodeText(nameNode),
+            content: nodeText(contentNode),
+            date: nodeText(dateNode),
+            avatar: {
+                textOrDesc: nodeText(avatarNode),
+                bounds: nodeBounds(avatarNode)
+            }
+        });
+    }
+
+    return results;
+}
+
 // 悬浮窗
 let w = floaty.window(
     <frame>
@@ -76,6 +119,10 @@ function runTask() {
 
     if (ok) {
         toast("点击成功");
+        utils.randomSleep(1200);
+
+        const items = collectN50Items();
+        dialogs.alert("n50抓取结果", "条目数: " + items.length + "\n\n" + JSON.stringify(items, null, 2));
     } else {
         toast("没找到");
     }
