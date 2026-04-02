@@ -16,6 +16,11 @@ const NON_MESSAGE_REF_BOUNDS = { left: 1300, top: 1607, right: 1384, bottom: 169
 const UNREAD_BADGE_TOLERANCE_PX = 5;
 const CARD_SEARCH_MAX_NODES = 600;
 const CARD_SEARCH_MAX_MS = 180;
+const TARGET_PACKAGES = [
+    "com.zhiliaoapp.musically",
+    "com.ss.android.ugc.trill",
+    "com.ss.android.ugc.aweme"
+];
 let debugLines = [];
 
 function ensureStartupPermissions() {
@@ -61,6 +66,14 @@ function debugStep(step, detail, holdMs) {
 function debugError(step, err, holdMs) {
     const msg = err ? (step + ": " + String(err)) : step;
     pushDebugLine("错误 " + (msg.length > 80 ? msg.substring(0, 80) : msg));
+}
+
+function isTargetPackage(pkg) {
+    if (!pkg) return false;
+    for (let i = 0; i < TARGET_PACKAGES.length; i++) {
+        if (pkg === TARGET_PACKAGES[i]) return true;
+    }
+    return false;
 }
 
 function nodeText(node) {
@@ -336,7 +349,7 @@ function isInInboxPage() {
     // 1) 必须在 TikTok 包内
     // 2) 必须有消息列表容器（nwg 或 n50）可见
     // 3) 必须有消息卡片字段（昵称/内容/日期）至少一个可见
-    if (currentPackage() !== "com.zhiliaoapp.musically") return false;
+    if (!isTargetPackage(currentPackage())) return false;
 
     const containerVisible =
         id("nwg").visibleToUser(true).find().size() > 0 ||
@@ -389,6 +402,7 @@ function tryOpenInboxTab() {
 function ensureInboxPage(timeoutMs) {
     const start = Date.now();
     let lastLaunchAt = 0;
+    let launchIdx = 0;
 
     while (running && Date.now() - start < timeoutMs) {
         const elapsed = Date.now() - start;
@@ -400,10 +414,12 @@ function ensureInboxPage(timeoutMs) {
         }
 
         const pkg = currentPackage();
-        if (pkg !== "com.zhiliaoapp.musically") {
+        if (!isTargetPackage(pkg)) {
             if (Date.now() - lastLaunchAt > 3000) {
-                debugStep("启动应用");
-                app.launchPackage("com.zhiliaoapp.musically");
+                const target = TARGET_PACKAGES[launchIdx % TARGET_PACKAGES.length];
+                launchIdx++;
+                debugStep("启动应用", target);
+                app.launchPackage(target);
                 lastLaunchAt = Date.now();
             }
             sleep(800);
@@ -502,7 +518,7 @@ function collectN50ItemsWithRetry() {
 // 悬浮窗
 let w = floaty.window(
     <vertical padding="6" bg="#66000000">
-        <button id="toggle" text="开启83" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启84" w="60" h="40" bg="#AA00CC66"/>
         <ScrollView w="260" h="180">
             <text
                 id="debugText"
