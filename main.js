@@ -307,7 +307,9 @@ function showItemsDialog(items) {
 }
 
 function isInInboxPage() {
-    return id("n50").exists() || id("as7").exists() || id("igq").exists();
+    const nwgVisible = id("nwg").visibleToUser(true).find().size() > 0;
+    const n50Visible = id("n50").visibleToUser(true).find().size() > 0;
+    return nwgVisible || n50Visible;
 }
 
 function tryOpenInboxTab() {
@@ -318,11 +320,19 @@ function tryOpenInboxTab() {
         return true;
     }
 
-    // 兜底：点击底部右侧 Tab（TikTok 消息入口常驻底部导航）
-    const x = Math.floor(device.width * 0.9);
-    const y = Math.floor(device.height * 0.96);
-    utils.randomClick(x, y);
-    debugStep("已点消息入口", "bottom-tab");
+    // 兜底：底部消息 tab 多点位轮询，适配不同机型/布局
+    const y = Math.floor(device.height * 0.965);
+    const ratios = [0.86, 0.9, 0.94];
+    for (let i = 0; i < ratios.length; i++) {
+        const x = Math.floor(device.width * ratios[i]);
+        utils.randomClick(x, y);
+        sleep(300);
+        if (isInInboxPage()) {
+            debugStep("已点消息入口", "bottom-tab-" + ratios[i]);
+            return true;
+        }
+    }
+    debugStep("已点消息入口", "bottom-tab-fallback");
     return true;
 }
 
@@ -331,7 +341,9 @@ function ensureInboxPage(timeoutMs) {
     let lastLaunchAt = 0;
 
     while (running && Date.now() - start < timeoutMs) {
+        const elapsed = Date.now() - start;
         if (isInInboxPage()) {
+            debugStep("已进入消息页", elapsed + "ms");
             return true;
         }
 
@@ -346,6 +358,7 @@ function ensureInboxPage(timeoutMs) {
             continue;
         }
 
+        debugStep("未在消息页", elapsed + "ms");
         tryOpenInboxTab();
         sleep(1200);
     }
