@@ -1,8 +1,8 @@
 {
-  "version": "20260401184816",
+  "version": "20260402170719",
   "force": 0,
   "entry": "main.js",
-  "changelog": "auto build 20260401184816",
+  "changelog": "auto build 20260402170719",
   "files": [
     {
       "path": "main.js",

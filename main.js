@@ -10,6 +10,9 @@ const COLLECT_RETRY_COUNT = 3;
 const COLLECT_RETRY_SLEEP_MS = 1200;
 const WAIT_MANUAL_STOP_AFTER_DONE = true;
 const DEBUG_MAX_LINES = 8;
+const UNREAD_BADGE_REF_BOUNDS = { left: 1313, top: 1368, right: 1371, bottom: 1426 };
+const NON_MESSAGE_REF_BOUNDS = { left: 1300, top: 1607, right: 1384, bottom: 1691 };
+const UNREAD_BADGE_TOLERANCE_PX = 5;
 let debugLines = [];
 
 function ensureStartupPermissions() {
@@ -73,6 +76,42 @@ function nodeBounds(node) {
     };
 }
 
+function boundsSize(bounds) {
+    if (!bounds) return null;
+    return {
+        width: Math.max(0, bounds.right - bounds.left),
+        height: Math.max(0, bounds.bottom - bounds.top)
+    };
+}
+
+function nodeIdMatch(node, shortId) {
+    if (!node) return false;
+    try {
+        const nid = node.id();
+        if (!nid) return false;
+        return nid === shortId || nid.endsWith("/" + shortId);
+    } catch (e) {
+        return false;
+    }
+}
+
+function findChildByIdCompat(root, shortId) {
+    if (!root) return null;
+    const stack = [root];
+    while (stack.length > 0) {
+        const n = stack.pop();
+        if (nodeIdMatch(n, shortId)) return n;
+        try {
+            const cnt = n.childCount();
+            for (let i = cnt - 1; i >= 0; i--) {
+                const c = n.child(i);
+                if (c) stack.push(c);
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
 function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
     if (dedupByBounds === undefined) dedupByBounds = true;
     if (isVisibleOnly === undefined) isVisibleOnly = true;
@@ -108,6 +147,87 @@ function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
         return a.cx - b.cx;
     });
     return arr;
+}
+
+function findChildByFilter(root, filterFn) {
+    if (!root || typeof filterFn !== "function") return null;
+    const stack = [root];
+    while (stack.length > 0) {
+        const n = stack.pop();
+        try {
+            if (filterFn(n)) return n;
+        } catch (e) {}
+        try {
+            const cnt = n.childCount();
+            for (let i = cnt - 1; i >= 0; i--) {
+                const c = n.child(i);
+                if (c) stack.push(c);
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
+function isUnreadBadgeNode(node) {
+    if (!node) return false;
+    if (!nodeIdMatch(node, "dq2")) return false;
+    try {
+        if (node.packageName() !== "com.zhiliaoapp.musically") return false;
+    } catch (e) {
+        return false;
+    }
+    try {
+        if (node.depth() !== 19) return false;
+    } catch (e) {
+        return false;
+    }
+
+    const nodeRect = nodeBounds(node);
+    const nodeSize = boundsSize(nodeRect);
+    const refSize = boundsSize(UNREAD_BADGE_REF_BOUNDS);
+    const nonMsgRefSize = boundsSize(NON_MESSAGE_REF_BOUNDS);
+    if (!nodeSize || !refSize || !nonMsgRefSize) return false;
+
+    const isNearNonMessageSize =
+        Math.abs(nodeSize.width - nonMsgRefSize.width) <= UNREAD_BADGE_TOLERANCE_PX &&
+        Math.abs(nodeSize.height - nonMsgRefSize.height) <= UNREAD_BADGE_TOLERANCE_PX;
+    if (isNearNonMessageSize) return false;
+
+    return Math.abs(nodeSize.width - refSize.width) <= UNREAD_BADGE_TOLERANCE_PX &&
+        Math.abs(nodeSize.height - refSize.height) <= UNREAD_BADGE_TOLERANCE_PX;
+}
+
+function openFirstUnreadCard() {
+    const rawCards = id("nwg").visibleToUser(true).find();
+    const refSize = boundsSize(UNREAD_BADGE_REF_BOUNDS);
+    debugStep("检查未读卡片", "总数=" + rawCards.size());
+
+    for (let i = 0; i < rawCards.size(); i++) {
+        if (!running) return false;
+        const card = rawCards.get(i);
+        const unreadBadge = findChildByFilter(card, isUnreadBadgeNode);
+        if (!unreadBadge) continue;
+
+        const badgeRect = nodeBounds(unreadBadge);
+        const badgeSize = boundsSize(badgeRect);
+        const cardRect = nodeBounds(card);
+        if (!cardRect || !badgeSize || !refSize) continue;
+
+        debugStep(
+            "命中未读",
+            "idx=" + i + " badge=" + badgeSize.width + "x" + badgeSize.height + " ref=" + refSize.width + "x" + refSize.height
+        );
+
+        utils.randomClick(
+            Math.floor((cardRect.left + cardRect.right) / 2),
+            Math.floor((cardRect.top + cardRect.bottom) / 2)
+        );
+        sleep(1200);
+        return true;
+    }
+
+    debugStep("未找到未读卡片");
+    return false;
 }
 
 // n50/nwg 这类卡片容器常有父子重叠节点：按“行”分组，每行保留面积最大的一个
@@ -235,10 +355,10 @@ function collectN50Items() {
             let card = rawCards.get(i);
 
             // 在当前卡片内查找
-            let nameNode = card.findOnce(id("s_z"));
-            let contentNode = card.findOnce(id("i03"));
-            let dateNode = card.findOnce(id("i08"));
-            let avatarNode = card.findOnce(id("ogb"));
+            let nameNode = findChildByIdCompat(card, "s_z");
+            let contentNode = findChildByIdCompat(card, "i03");
+            let dateNode = findChildByIdCompat(card, "i08");
+            let avatarNode = findChildByIdCompat(card, "ogb");
 
             let item = {
                 nickname: nodeText(nameNode),
@@ -356,6 +476,8 @@ function runTask() {
     const items = collectN50ItemsWithRetry();
     debugStep("准备展示结果", "条目数=" + items.length);
     showItemsDialog(items);
+    const opened = openFirstUnreadCard();
+    debugStep("点击未读结果", opened ? "已进入聊天" : "无未读");
     debugStep("runTask结束");
 
     if (WAIT_MANUAL_STOP_AFTER_DONE) {
