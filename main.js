@@ -8,11 +8,14 @@ let worker = null;
 const DEBUG = true;
 const COLLECT_RETRY_COUNT = 3;
 const COLLECT_RETRY_SLEEP_MS = 1200;
-const WAIT_MANUAL_STOP_AFTER_DONE = true;
+const WAIT_MANUAL_STOP_AFTER_DONE = false;
+const SHOW_RESULT_DIALOG = false;
 const DEBUG_MAX_LINES = 200;
 const UNREAD_BADGE_REF_BOUNDS = { left: 1313, top: 1368, right: 1371, bottom: 1426 };
 const NON_MESSAGE_REF_BOUNDS = { left: 1300, top: 1607, right: 1384, bottom: 1691 };
 const UNREAD_BADGE_TOLERANCE_PX = 5;
+const CARD_SEARCH_MAX_NODES = 600;
+const CARD_SEARCH_MAX_MS = 180;
 let debugLines = [];
 
 function ensureStartupPermissions() {
@@ -97,8 +100,19 @@ function nodeIdMatch(node, shortId) {
 
 function findChildByIdCompat(root, shortId) {
     if (!root) return null;
+    const start = Date.now();
+    let visited = 0;
     const stack = [root];
     while (stack.length > 0) {
+        if (!running) return null;
+        if (visited++ > CARD_SEARCH_MAX_NODES) {
+            debugStep("卡片搜索超限", "id=" + shortId + " nodes>" + CARD_SEARCH_MAX_NODES);
+            return null;
+        }
+        if (Date.now() - start > CARD_SEARCH_MAX_MS) {
+            debugStep("卡片搜索超时", "id=" + shortId + " >" + CARD_SEARCH_MAX_MS + "ms");
+            return null;
+        }
         const n = stack.pop();
         if (nodeIdMatch(n, shortId)) return n;
         try {
@@ -151,8 +165,19 @@ function nodesByIdSorted(viewId, dedupByBounds,isVisibleOnly) {
 
 function findChildByFilter(root, filterFn) {
     if (!root || typeof filterFn !== "function") return null;
+    const start = Date.now();
+    let visited = 0;
     const stack = [root];
     while (stack.length > 0) {
+        if (!running) return null;
+        if (visited++ > CARD_SEARCH_MAX_NODES) {
+            debugStep("卡片过滤超限", "nodes>" + CARD_SEARCH_MAX_NODES);
+            return null;
+        }
+        if (Date.now() - start > CARD_SEARCH_MAX_MS) {
+            debugStep("卡片过滤超时", ">" + CARD_SEARCH_MAX_MS + "ms");
+            return null;
+        }
         const n = stack.pop();
         try {
             if (filterFn(n)) return n;
@@ -404,12 +429,35 @@ function collectN50Items() {
         try {
             debugStep("进入第" + (i + 1) + "条");
             let card = rawCards.get(i);
+            const cb = nodeBounds(card);
+            if (cb) {
+                debugStep("卡片bounds", "第" + (i + 1) + "条 " + cb.left + "," + cb.top + "," + cb.right + "," + cb.bottom);
+            }
 
             // 在当前卡片内查找
+            const tName = Date.now();
+            debugStep("字段查询开始", "第" + (i + 1) + "条/s_z");
             let nameNode = findChildByIdCompat(card, "s_z");
+            debugStep("字段查询结束", "第" + (i + 1) + "条/s_z 命中=" + (nameNode ? 1 : 0) + " 耗时=" + (Date.now() - tName) + "ms");
+
+            const tContent = Date.now();
+            debugStep("字段查询开始", "第" + (i + 1) + "条/i03");
             let contentNode = findChildByIdCompat(card, "i03");
+            debugStep("字段查询结束", "第" + (i + 1) + "条/i03 命中=" + (contentNode ? 1 : 0) + " 耗时=" + (Date.now() - tContent) + "ms");
+
+            const tDate = Date.now();
+            debugStep("字段查询开始", "第" + (i + 1) + "条/i08");
             let dateNode = findChildByIdCompat(card, "i08");
+            debugStep("字段查询结束", "第" + (i + 1) + "条/i08 命中=" + (dateNode ? 1 : 0) + " 耗时=" + (Date.now() - tDate) + "ms");
+
+            const tAvatar = Date.now();
+            debugStep("字段查询开始", "第" + (i + 1) + "条/ogb");
             let avatarNode = findChildByIdCompat(card, "ogb");
+            debugStep("字段查询结束", "第" + (i + 1) + "条/ogb 命中=" + (avatarNode ? 1 : 0) + " 耗时=" + (Date.now() - tAvatar) + "ms");
+            if (!nameNode && !contentNode && !dateNode) {
+                debugStep("跳过第" + (i + 1) + "条", "卡片搜索超时或未命中字段");
+                continue;
+            }
 
             let item = {
                 nickname: nodeText(nameNode),
@@ -454,7 +502,7 @@ function collectN50ItemsWithRetry() {
 // 悬浮窗
 let w = floaty.window(
     <vertical padding="6" bg="#66000000">
-        <button id="toggle" text="开启82" w="60" h="40" bg="#AA00CC66"/>
+        <button id="toggle" text="开启83" w="60" h="40" bg="#AA00CC66"/>
         <ScrollView w="260" h="180">
             <text
                 id="debugText"
@@ -534,7 +582,9 @@ function runTask() {
     debugStep("已在消息页");
     const items = collectN50ItemsWithRetry();
     debugStep("准备展示结果", "条目数=" + items.length);
-    showItemsDialog(items);
+    if (SHOW_RESULT_DIALOG) {
+        showItemsDialog(items);
+    }
     const opened = openFirstUnreadCard();
     debugStep("点击未读结果", opened ? "已进入聊天" : "无未读");
     debugStep("runTask结束");
