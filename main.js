@@ -406,13 +406,6 @@ function ensureInboxPage(timeoutMs) {
 
     while (running && Date.now() - start < timeoutMs) {
         const elapsed = Date.now() - start;
-        const probe = inboxProbeState();
-        debugStep("消息页探测", "t=" + elapsed + " pkg=" + probe.pkg + " nwg=" + probe.nwg + " n50=" + probe.n50 + " s_z=" + probe.sz + " i03=" + probe.i03 + " i08=" + probe.i08);
-        if (isInInboxPage()) {
-            debugStep("已进入消息页", elapsed + "ms");
-            return true;
-        }
-
         const pkg = currentPackage();
         if (!isTargetPackage(pkg)) {
             if (Date.now() - lastLaunchAt > 3000) {
@@ -426,9 +419,16 @@ function ensureInboxPage(timeoutMs) {
             continue;
         }
 
-        debugStep("未在消息页", elapsed + "ms");
+        debugStep("尝试点击消息入口", elapsed + "ms");
         tryOpenInboxTab();
-        sleep(1200);
+        sleep(900);
+
+        const probe = inboxProbeState();
+        debugStep("消息页探测", "t=" + elapsed + " pkg=" + probe.pkg + " nwg=" + probe.nwg + " n50=" + probe.n50 + " s_z=" + probe.sz + " i03=" + probe.i03 + " i08=" + probe.i08);
+        if (isInInboxPage()) {
+            debugStep("已进入消息页", elapsed + "ms");
+            return true;
+        }
     }
 
     return isInInboxPage();
