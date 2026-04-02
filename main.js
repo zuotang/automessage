@@ -9,7 +9,7 @@ const DEBUG = true;
 const COLLECT_RETRY_COUNT = 3;
 const COLLECT_RETRY_SLEEP_MS = 1200;
 const WAIT_MANUAL_STOP_AFTER_DONE = true;
-const DEBUG_MAX_LINES = 8;
+const DEBUG_MAX_LINES = 200;
 const UNREAD_BADGE_REF_BOUNDS = { left: 1313, top: 1368, right: 1371, bottom: 1426 };
 const NON_MESSAGE_REF_BOUNDS = { left: 1300, top: 1607, right: 1384, bottom: 1691 };
 const UNREAD_BADGE_TOLERANCE_PX = 5;
@@ -307,9 +307,34 @@ function showItemsDialog(items) {
 }
 
 function isInInboxPage() {
-    const nwgVisible = id("nwg").visibleToUser(true).find().size() > 0;
-    const n50Visible = id("n50").visibleToUser(true).find().size() > 0;
-    return nwgVisible || n50Visible;
+    // 仅靠容器 id 可能在首页误命中，这里做组合判定：
+    // 1) 必须在 TikTok 包内
+    // 2) 必须有消息列表容器（nwg 或 n50）可见
+    // 3) 必须有消息卡片字段（昵称/内容/日期）至少一个可见
+    if (currentPackage() !== "com.zhiliaoapp.musically") return false;
+
+    const containerVisible =
+        id("nwg").visibleToUser(true).find().size() > 0 ||
+        id("n50").visibleToUser(true).find().size() > 0;
+    if (!containerVisible) return false;
+
+    const cardFieldVisible =
+        id("s_z").visibleToUser(true).find().size() > 0 ||
+        id("i03").visibleToUser(true).find().size() > 0 ||
+        id("i08").visibleToUser(true).find().size() > 0;
+    if (!cardFieldVisible) return false;
+
+    return true;
+}
+
+function inboxProbeState() {
+    const pkg = currentPackage();
+    const nwg = id("nwg").visibleToUser(true).find().size();
+    const n50 = id("n50").visibleToUser(true).find().size();
+    const sz = id("s_z").visibleToUser(true).find().size();
+    const i03 = id("i03").visibleToUser(true).find().size();
+    const i08 = id("i08").visibleToUser(true).find().size();
+    return { pkg, nwg, n50, sz, i03, i08 };
 }
 
 function tryOpenInboxTab() {
@@ -342,6 +367,8 @@ function ensureInboxPage(timeoutMs) {
 
     while (running && Date.now() - start < timeoutMs) {
         const elapsed = Date.now() - start;
+        const probe = inboxProbeState();
+        debugStep("消息页探测", "t=" + elapsed + " pkg=" + probe.pkg + " nwg=" + probe.nwg + " n50=" + probe.n50 + " s_z=" + probe.sz + " i03=" + probe.i03 + " i08=" + probe.i08);
         if (isInInboxPage()) {
             debugStep("已进入消息页", elapsed + "ms");
             return true;
@@ -428,7 +455,15 @@ function collectN50ItemsWithRetry() {
 let w = floaty.window(
     <vertical padding="6" bg="#66000000">
         <button id="toggle" text="开启82" w="60" h="40" bg="#AA00CC66"/>
-        <text id="debugText" text="就绪" textColor="#FFFFFF" textSize="10sp" w="240" h="120"/>
+        <ScrollView w="260" h="180">
+            <text
+                id="debugText"
+                text="就绪"
+                textColor="#FFFFFF"
+                textSize="10sp"
+                w="260"
+            />
+        </ScrollView>
     </vertical>
 );
 
