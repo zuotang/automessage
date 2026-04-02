@@ -21,6 +21,7 @@ const TARGET_PACKAGES = [
     "com.ss.android.ugc.trill",
     "com.ss.android.ugc.aweme"
 ];
+const TARGET_PACKAGE_HINTS = ["musically", "trill", "aweme", "tiktok"];
 let debugLines = [];
 
 function ensureStartupPermissions() {
@@ -71,7 +72,11 @@ function debugError(step, err, holdMs) {
 function isTargetPackage(pkg) {
     if (!pkg) return false;
     for (let i = 0; i < TARGET_PACKAGES.length; i++) {
-        if (pkg === TARGET_PACKAGES[i]) return true;
+        const base = TARGET_PACKAGES[i];
+        if (pkg === base || pkg.indexOf(base + ".") === 0) return true;
+    }
+    for (let i = 0; i < TARGET_PACKAGE_HINTS.length; i++) {
+        if (pkg.indexOf(TARGET_PACKAGE_HINTS[i]) >= 0) return true;
     }
     return false;
 }
@@ -346,10 +351,8 @@ function showItemsDialog(items) {
 
 function isInInboxPage() {
     // 仅靠容器 id 可能在首页误命中，这里做组合判定：
-    // 1) 必须在 TikTok 包内
-    // 2) 必须有消息列表容器（nwg 或 n50）可见
-    // 3) 必须有消息卡片字段（昵称/内容/日期）至少一个可见
-    if (!isTargetPackage(currentPackage())) return false;
+    // 1) 必须有消息列表容器（nwg 或 n50）可见
+    // 2) 必须有消息卡片字段（昵称/内容/日期）至少一个可见
 
     const containerVisible =
         id("nwg").visibleToUser(true).find().size() > 0 ||
@@ -401,24 +404,9 @@ function tryOpenInboxTab() {
 
 function ensureInboxPage(timeoutMs) {
     const start = Date.now();
-    let lastLaunchAt = 0;
-    let launchIdx = 0;
 
     while (running && Date.now() - start < timeoutMs) {
         const elapsed = Date.now() - start;
-        const pkg = currentPackage();
-        if (!isTargetPackage(pkg)) {
-            if (Date.now() - lastLaunchAt > 3000) {
-                const target = TARGET_PACKAGES[launchIdx % TARGET_PACKAGES.length];
-                launchIdx++;
-                debugStep("启动应用", target);
-                app.launchPackage(target);
-                lastLaunchAt = Date.now();
-            }
-            sleep(800);
-            continue;
-        }
-
         debugStep("尝试点击消息入口", elapsed + "ms");
         tryOpenInboxTab();
         sleep(900);
