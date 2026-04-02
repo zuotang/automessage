@@ -385,21 +385,8 @@ function tryOpenInboxTab() {
         debugStep("已点消息入口", "text/desc");
         return true;
     }
-
-    // 兜底：底部消息 tab 多点位轮询，适配不同机型/布局
-    const y = Math.floor(device.height * 0.965);
-    const ratios = [0.86, 0.9, 0.94];
-    for (let i = 0; i < ratios.length; i++) {
-        const x = Math.floor(device.width * ratios[i]);
-        utils.randomClick(x, y);
-        sleep(300);
-        if (isInInboxPage()) {
-            debugStep("已点消息入口", "bottom-tab-" + ratios[i]);
-            return true;
-        }
-    }
-    debugStep("已点消息入口", "bottom-tab-fallback");
-    return true;
+    debugStep("未找到消息入口", "text/desc");
+    return false;
 }
 
 function ensureInboxPage(timeoutMs) {
