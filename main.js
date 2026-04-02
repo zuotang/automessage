@@ -310,6 +310,22 @@ function isInInboxPage() {
     return id("n50").exists() || id("as7").exists() || id("igq").exists();
 }
 
+function tryOpenInboxTab() {
+    // 优先按文案/无障碍描述点击
+    const byText = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.72, () => !running);
+    if (byText) {
+        debugStep("已点消息入口", "text/desc");
+        return true;
+    }
+
+    // 兜底：点击底部右侧 Tab（TikTok 消息入口常驻底部导航）
+    const x = Math.floor(device.width * 0.9);
+    const y = Math.floor(device.height * 0.96);
+    utils.randomClick(x, y);
+    debugStep("已点消息入口", "bottom-tab");
+    return true;
+}
+
 function ensureInboxPage(timeoutMs) {
     const start = Date.now();
     let lastLaunchAt = 0;
@@ -330,13 +346,8 @@ function ensureInboxPage(timeoutMs) {
             continue;
         }
 
-        const clicked = utils.tClick(["Inbox", "消息", "收件箱"], 0, 0.75, () => !running);
-        if (clicked) {
-            debugStep("已点消息入口");
-            sleep(1200);
-        } else {
-            sleep(500);
-        }
+        tryOpenInboxTab();
+        sleep(1200);
     }
 
     return isInInboxPage();
