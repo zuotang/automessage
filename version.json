@@ -1,16 +1,16 @@
 {
-  "version": "20260402184951",
+  "version": "20260403110637",
   "force": 0,
   "entry": "main.js",
-  "changelog": "auto build 20260402184951",
+  "changelog": "auto build 20260403110637",
   "files": [
     {
       "path": "main.js",
-      "url": "https://raw.githubusercontent.com/zuotang/automessage/main/main.js"
+      "url": "https://prosia.ai/autojs/main.js"
     },
     {
       "path": "lib/utils.js",
-      "url": "https://raw.githubusercontent.com/zuotang/automessage/main/lib/utils.js"
+      "url": "https://prosia.ai/autojs/lib/utils.js"
     }
   ]
 }

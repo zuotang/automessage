@@ -1,14 +1,14 @@
 "auto";
 
 // =========================
-// AutoJs6 GitHub 更新器模板
+// AutoJs6 HTTP 更新器（适配 Nginx 静态文件）
 // =========================
 
 // ---- 你要改的配置 ----
-const BOOTSTRAP_VERSION = "1.0.0";
-let fetchIndex=0
-const REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/zuotang/automessage/main/version.json";
-const REMOTE_MANIFEST_URL2 = "https://raw.githubusercontent.com/zuotang/automessage/refs/heads/main/version.json";
+const BOOTSTRAP_VERSION = "1.1.0";
+const REMOTE_BASE_URL = "https://prosia.ai/autojs";
+const REMOTE_MANIFEST_URL = REMOTE_BASE_URL.replace(/\/+$/, "") + "/version.json";
+const CHECK_INTERVAL_MS = 15000;
 
 // ---- 本地目录 ----
 const BASE_DIR = files.cwd();
@@ -23,6 +23,7 @@ http.__okhttp__.setTimeout(15000);
 main();
 
 function main() {
+    let childEngine = null;
     try {
         ensureDir(BASE_DIR);
         ensureDir(TEMP_DIR);
@@ -30,44 +31,81 @@ function main() {
         logi("启动更新器");
         toastLog("检查远程版本...");
 
-        const remote = getRemoteManifest();
-        validateManifest(remote);
+        const firstState = syncRemoteIfNeeded(true);
+        childEngine = startEntryEngine(firstState.entry);
+        toastLog("实时检测已开启");
 
-        checkBootstrapCompatibility(remote);
+        while (true) {
+            sleep(CHECK_INTERVAL_MS);
+            const state = syncRemoteIfNeeded(false);
+            if (state.updated) {
+                logi("检测到更新，重启入口脚本");
+                if (childEngine) {
+                    try {
+                        childEngine.forceStop();
+                    } catch (stopErr) {
+                        logw("停止旧脚本失败: " + stopErr.message);
+                    }
+                    sleep(300);
+                }
+                childEngine = startEntryEngine(state.entry);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        toastLog("启动失败: " + e.message);
+        if (childEngine) {
+            try {
+                childEngine.forceStop();
+            } catch (stopErr) {
+                logw("停止脚本失败: " + stopErr.message);
+            }
+        }
+    }
+}
 
-        const local = getLocalMeta();
-        printVersionInfo(local, remote);
+function syncRemoteIfNeeded(showToast) {
+    const remote = getRemoteManifest();
+    validateManifest(remote);
+    checkBootstrapCompatibility(remote);
 
-        if (shouldUpdate(local, remote)) {
-            logi("检测到新版本，开始更新");
+    const local = getLocalMeta();
+    printVersionInfo(local, remote);
+
+    if (shouldUpdate(local, remote)) {
+        logi("检测到新版本，开始更新");
+        if (showToast) {
             if (remote.changelog) {
                 toastLog("发现新版本: " + remote.version + "\n" + remote.changelog);
             } else {
                 toastLog("发现新版本: " + remote.version);
             }
-
-            performUpdate(remote);
-
-            saveLocalMeta({
-                version: remote.version,
-                force: remote.force || 0,
-                updatedAt: new Date().toISOString(),
-                entry: remote.entry || "main.js"
-            });
-
-            toastLog("更新完成");
-            logi("更新完成");
-        } else {
-            logi("当前已是最新版本");
-            toastLog("当前已是最新版本");
         }
 
-        runEntry(remote.entry || getLocalEntry() || "main.js");
+        performUpdate(remote);
 
-    } catch (e) {
-        console.error(e);
-        toastLog("启动失败: " + e.message);
+        saveLocalMeta({
+            version: remote.version,
+            force: remote.force || 0,
+            updatedAt: new Date().toISOString(),
+            entry: remote.entry || "main.js"
+        });
+
+        logi("更新完成");
+        if (showToast) {
+            toastLog("更新完成");
+        }
+        return {
+            updated: true,
+            entry: remote.entry || "main.js"
+        };
     }
+
+    logi("当前已是最新版本");
+    return {
+        updated: false,
+        entry: remote.entry || getLocalEntry() || "main.js"
+    };
 }
 
 // =========================
@@ -75,13 +113,7 @@ function main() {
 // =========================
 
 function getRemoteManifest() {
-    let res 
-    if(fetchIndex%2==0){
-        res=http.get(withNoCache(REMOTE_MANIFEST_URL2));
-    }else{
-        res=http.get(withNoCache(REMOTE_MANIFEST_URL));
-        fetchIndex=1
-    } 
+    const res = http.get(withNoCache(REMOTE_MANIFEST_URL));
     if (!res) {
         throw new Error("获取远程 version.json 失败");
     }
@@ -231,7 +263,7 @@ function performUpdate(remote) {
     clearTempDir();
 }
 
-function runEntry(entryRelativePath) {
+function startEntryEngine(entryRelativePath) {
     const entryFile = files.join(BASE_DIR, entryRelativePath);
     if (!files.exists(entryFile)) {
         throw new Error("入口脚本不存在: " + entryFile);
@@ -239,7 +271,7 @@ function runEntry(entryRelativePath) {
 
     logi("运行入口脚本: " + entryFile);
 
-    engines.execScriptFile(entryFile, {
+    return engines.execScriptFile(entryFile, {
         path: BASE_DIR
     });
 }

@@ -19,6 +19,15 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "node gen-version.js && git add . && git commit -m \"release\" && git push"
+    "build:version": "node gen-version.js",
+    "deploy:sftp": "node scripts/sftp-sync.js",
+    "watch:sftp": "node scripts/sftp-sync.js --watch",
+    "sync": "npm run watch:sftp",
+    "release": "npm run deploy:sftp"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "dotenv": "^16.6.1",
+    "ssh2-sftp-client": "^12.0.1"
   }
 }
